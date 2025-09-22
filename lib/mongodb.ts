@@ -1,6 +1,6 @@
 import { MongoClient, type Db } from "mongodb"
 
-const MONGODB_URI = "mongodb+srv://gbuofficial001_db_user:zcfREVD4jFlnoSwF@notes.6r5sjbl.mongodb.net/"
+const MONGODB_URI = process.env.MONGODB_URI
 const MONGODB_DB = "quiz"
 
 if (!MONGODB_URI) {
@@ -15,7 +15,7 @@ export async function connectToDatabase() {
     return { client: cachedClient, db: cachedDb }
   }
 
-  const client = new MongoClient(MONGODB_URI)
+  const client = new MongoClient(MONGODB_URI!)
   await client.connect()
 
   const db = client.db(MONGODB_DB)

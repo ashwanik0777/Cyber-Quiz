@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -19,65 +19,12 @@ export default function QuizPage() {
   const [timeLeft, setTimeLeft] = useState(15)
   const [isAnswered, setIsAnswered] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
-  // Initialize quiz
-  useEffect(() => {
-    const userData = sessionStorage.getItem("currentUser")
-    if (!userData) {
-      router.push("/")
-      return
-    }
-
-    const user = JSON.parse(userData)
-    setCurrentUser(user)
-
-    // Get 10 random questions
-    const randomQuestions = getRandomQuestions(10)
-    setQuestions(randomQuestions)
-    setSelectedAnswers(new Array(10).fill(-1))
-    setIsLoading(false)
-  }, [router])
-
-  // Timer effect
-  useEffect(() => {
-    if (isLoading || isAnswered) return
-
-    if (timeLeft > 0) {
-      const timer = setTimeout(() => setTimeLeft(timeLeft - 1), 1000)
-      return () => clearTimeout(timer)
-    } else {
-      // Time's up, move to next question
-      handleNextQuestion()
-    }
-  }, [timeLeft, isLoading, isAnswered])
-
-  const handleAnswerSelect = (answerIndex: number) => {
-    if (isAnswered) return
-
-    // Record the answer
-    const newAnswers = [...selectedAnswers]
-    newAnswers[currentQuestionIndex] = answerIndex
-    setSelectedAnswers(newAnswers)
-    setIsAnswered(true)
-
-    // Move to next question after a short delay
-    setTimeout(() => {
-      handleNextQuestion()
-    }, 500)
-  }
-
-  const handleNextQuestion = () => {
-    if (currentQuestionIndex < questions.length - 1) {
-      setCurrentQuestionIndex(currentQuestionIndex + 1)
-      setTimeLeft(15)
-      setIsAnswered(false)
-    } else {
-      // Quiz completed, navigate to results
-      finishQuiz()
-    }
-  }
-
-  const finishQuiz = async () => {
+  // Quiz completion function
+  const finishQuiz = useCallback(async () => {
+    setIsSubmitting(true) // Show submitting state during submission
+    
     let score = 0
     const answersWithDetails = questions.map((question, index) => {
       const selectedOption = selectedAnswers[index]
@@ -91,6 +38,17 @@ export default function QuizPage() {
         timeTaken: 15, // We can enhance this later to track actual time
       }
     })
+
+    // Prepare quiz data first
+    const quizData: any = {
+      user: currentUser,
+      questions: questions,
+      answers: selectedAnswers,
+      score,
+      totalQuestions: questions.length,
+      percentage: Math.round((score / questions.length) * 100),
+      completedAt: new Date().toISOString(),
+    }
 
     try {
       const response = await fetch("/api/quiz/submit", {
@@ -112,40 +70,84 @@ export default function QuizPage() {
 
       const result = await response.json()
 
-      if (!response.ok) {
-        throw new Error(result.error || "Failed to submit quiz")
+      if (response.ok) {
+        // Add result ID if successful
+        quizData.resultId = result.resultId
+      } else {
+        console.error("API Error:", result.error)
+        quizData.error = result.error || "Failed to save to database"
       }
-
-      // Store results for display
-      const quizData = {
-        user: currentUser,
-        questions: questions,
-        answers: selectedAnswers,
-        score,
-        totalQuestions: questions.length,
-        percentage: Math.round((score / questions.length) * 100),
-        completedAt: new Date().toISOString(),
-        resultId: result.resultId,
-      }
-
-      sessionStorage.setItem("quizResults", JSON.stringify(quizData))
-      router.push("/results")
     } catch (error) {
-      console.error("Error submitting quiz:", error)
-      // Fallback to local storage if API fails
-      const quizData = {
-        user: currentUser,
-        questions: questions,
-        answers: selectedAnswers,
-        score,
-        totalQuestions: questions.length,
-        percentage: Math.round((score / questions.length) * 100),
-        completedAt: new Date().toISOString(),
-        error: "Failed to save to database",
-      }
-      sessionStorage.setItem("quizResults", JSON.stringify(quizData))
-      router.push("/results")
+      console.error("Network Error:", error)
+      quizData.error = "Network error occurred"
     }
+
+    // Always store results and navigate, regardless of API success/failure
+    sessionStorage.setItem("quizResults", JSON.stringify(quizData))
+    
+    // Add a small delay to ensure sessionStorage is written
+    setTimeout(() => {
+      setIsSubmitting(false)
+      router.push("/results")
+    }, 500)
+  }, [questions, selectedAnswers, currentUser, router])
+
+  // Handle moving to next question
+  const handleNextQuestion = useCallback(() => {
+    if (currentQuestionIndex < questions.length - 1) {
+      setCurrentQuestionIndex(currentQuestionIndex + 1)
+      setTimeLeft(15)
+      setIsAnswered(false)
+    } else {
+      // Quiz completed, navigate to results
+      finishQuiz()
+    }
+  }, [currentQuestionIndex, questions.length, finishQuiz])
+
+  // Initialize quiz
+  useEffect(() => {
+    const userData = sessionStorage.getItem("currentUser")
+    if (!userData) {
+      router.push("/")
+      return
+    }
+
+    const user = JSON.parse(userData)
+    setCurrentUser(user)
+
+    // Get 10 random questions
+    const randomQuestions = getRandomQuestions(10)
+    setQuestions(randomQuestions)
+    setSelectedAnswers(new Array(10).fill(-1))
+    setIsLoading(false)
+  }, [router])
+
+  // Timer effect
+  useEffect(() => {
+    if (isLoading || isAnswered || isSubmitting || currentQuestionIndex >= questions.length) return
+
+    if (timeLeft > 0) {
+      const timer = setTimeout(() => setTimeLeft(timeLeft - 1), 1000)
+      return () => clearTimeout(timer)
+    } else {
+      // Time's up, move to next question
+      handleNextQuestion()
+    }
+  }, [timeLeft, isLoading, isAnswered, isSubmitting, currentQuestionIndex, questions.length, handleNextQuestion])
+
+  const handleAnswerSelect = (answerIndex: number) => {
+    if (isAnswered || isSubmitting) return
+
+    // Record the answer
+    const newAnswers = [...selectedAnswers]
+    newAnswers[currentQuestionIndex] = answerIndex
+    setSelectedAnswers(newAnswers)
+    setIsAnswered(true)
+
+    // Move to next question after a short delay
+    setTimeout(() => {
+      handleNextQuestion()
+    }, 500)
   }
 
   if (isLoading) {
@@ -154,6 +156,18 @@ export default function QuizPage() {
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
           <p className="text-gray-600">Loading quiz...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (isSubmitting) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-100 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Submitting your answers...</p>
+          <p className="text-sm text-gray-500 mt-2">Please wait while we save your results</p>
         </div>
       </div>
     )
@@ -247,7 +261,7 @@ export default function QuizPage() {
                   <button
                     key={index}
                     onClick={() => handleAnswerSelect(index)}
-                    disabled={isAnswered}
+                    disabled={isAnswered || isSubmitting}
                     className={`w-full p-4 text-left rounded-lg border-2 transition-all duration-200 ${
                       showResult
                         ? isCorrect
@@ -258,7 +272,7 @@ export default function QuizPage() {
                         : isSelected
                           ? "border-blue-500 bg-blue-50 text-blue-800"
                           : "border-gray-200 bg-white hover:border-blue-300 hover:bg-blue-50 text-gray-800"
-                    } ${isAnswered ? "cursor-not-allowed" : "cursor-pointer"}`}
+                    } ${isAnswered || isSubmitting ? "cursor-not-allowed" : "cursor-pointer"}`}
                   >
                     <div className="flex items-center justify-between">
                       <span className="text-pretty leading-relaxed">{option}</span>
@@ -277,7 +291,7 @@ export default function QuizPage() {
         </Card>
 
         {/* Next Button (only shown when answered) */}
-        {isAnswered && currentQuestionIndex < questions.length - 1 && (
+        {isAnswered && currentQuestionIndex < questions.length - 1 && !isSubmitting && (
           <div className="text-center">
             <Button onClick={handleNextQuestion} className="bg-blue-600 hover:bg-blue-700 text-white px-8">
               Next Question
@@ -286,7 +300,7 @@ export default function QuizPage() {
         )}
 
         {/* Finish Button (only shown on last question when answered) */}
-        {isAnswered && currentQuestionIndex === questions.length - 1 && (
+        {isAnswered && currentQuestionIndex === questions.length - 1 && !isSubmitting && (
           <div className="text-center">
             <Button onClick={finishQuiz} className="bg-green-600 hover:bg-green-700 text-white px-8">
               Finish Quiz

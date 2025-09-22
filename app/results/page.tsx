@@ -36,7 +36,7 @@ export default function ResultsPage() {
   const [showAnswers, setShowAnswers] = useState(false)
 
   // WhatsApp group link (replace with your actual group link)
-  const WHATSAPP_GROUP_LINK = "https://chat.whatsapp.com/your-group-invite-link"
+  const WHATSAPP_GROUP_LINK = "https://chat.whatsapp.com/DdmuafKHRoTAYSaLTeBzqP"
 
   useEffect(() => {
     const quizData = sessionStorage.getItem("quizResults")
@@ -296,13 +296,13 @@ export default function ResultsPage() {
               <Home className="h-4 w-4 mr-2" />
               Back to Home
             </Button>
-            <Button
+            {/* <Button
               onClick={() => router.push("/admin")}
               variant="outline"
               className="flex-1 border-gray-200 text-gray-700 hover:bg-gray-50"
             >
               Admin Dashboard
-            </Button>
+            </Button> */}
           </div>
         </div>
       </main>

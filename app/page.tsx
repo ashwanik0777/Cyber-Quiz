@@ -256,7 +256,7 @@ export default function HomePage() {
         </div>
 
         {/* Admin Link */}
-        <div className="mt-6 text-center">
+        {/* <div className="mt-6 text-center">
           <Button
             variant="ghost"
             onClick={() => router.push("/admin")}
@@ -264,7 +264,7 @@ export default function HomePage() {
           >
             Admin Dashboard
           </Button>
-        </div>
+        </div> */}
       </main>
     </div>
   )
