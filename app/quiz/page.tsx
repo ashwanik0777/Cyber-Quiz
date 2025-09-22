@@ -60,18 +60,10 @@ export default function QuizPage() {
     setSelectedAnswers(newAnswers)
     setIsAnswered(true)
 
-    // Check if this is the last question
-    if (currentQuestionIndex === questions.length - 1) {
-      // Last question - finish quiz immediately with updated answers
-      setTimeout(() => {
-        finishQuiz(newAnswers)
-      }, 500)
-    } else {
-      // Move to next question after a short delay
-      setTimeout(() => {
-        handleNextQuestion()
-      }, 500)
-    }
+    // Move to next question after a short delay
+    setTimeout(() => {
+      handleNextQuestion()
+    }, 500)
   }
 
   const handleNextQuestion = () => {
@@ -80,18 +72,15 @@ export default function QuizPage() {
       setTimeLeft(15)
       setIsAnswered(false)
     } else {
-      // Quiz completed, navigate to results (this case shouldn't happen now)
+      // Quiz completed, navigate to results
       finishQuiz()
     }
   }
 
-  const finishQuiz = async (finalAnswers?: number[]) => {
-    // Use provided answers or fall back to state
-    const answersToUse = finalAnswers || selectedAnswers
-    
+  const finishQuiz = async () => {
     let score = 0
     const answersWithDetails = questions.map((question, index) => {
-      const selectedOption = answersToUse[index]
+      const selectedOption = selectedAnswers[index]
       const isCorrect = selectedOption === question.correctAnswer
       if (isCorrect) score++
 
