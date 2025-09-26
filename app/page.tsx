@@ -248,7 +248,7 @@ export default function HomePage() {
         <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-100">
           <h3 className="font-semibold text-blue-900 mb-2">Quiz Information:</h3>
           <ul className="text-sm text-blue-800 space-y-1">
-            <li>• 10 random questions from 100+ question bank</li>
+            <li>• 10 random questions</li>
             <li>• 15 seconds per question</li>
             <li>• Topics: Cybercrime, Cyber Literacy, Online Safety</li>
             <li>• Score 80%+ to be eligible for rewards</li>
@@ -266,6 +266,21 @@ export default function HomePage() {
           </Button>
         </div> */}
       </main>
+
+      {/* Footer */}
+      <footer className="bg-white/80 backdrop-blur-sm border-t border-blue-100 py-6 mt-8">
+        <div className="container mx-auto px-4 text-center">
+          <div className="space-y-2">
+            <p className="text-sm text-gray-600">
+              © {new Date().getFullYear()} CyberVaani Quiz. All rights reserved.
+            </p>
+            <p className="text-sm text-gray-500">
+              Designed & Developed by{" "}
+              <span className="font-semibold text-blue-600">Ashwani Kushwaha</span>
+            </p>
+          </div>
+        </div>
+      </footer>
     </div>
   )
 }
